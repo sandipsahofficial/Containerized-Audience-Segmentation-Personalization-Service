@@ -1167,7 +1167,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
               <!-- Viewer ID -->
               <div class="form-group">
                 <div class="form-label">Viewer ID</div>
-                <input type="text" id="viewerId" class="input-text" value="USR-8192" placeholder="e.g. USR-1001" required>
+                <input type="text" id="viewerId" class="input-text" value="USR-0003" placeholder="e.g. USR-0003, USR-0002" required>
               </div>
 
               <!-- Engagement Inputs -->
@@ -1469,15 +1469,16 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     function selectArchetype(key) {
       clearArchetypeHighlight();
       const presets = {
-        action:   { id: 'btnArchAction',   watch: 65, session: 95,  genres: ['Action', 'Thriller'] },
-        casual:   { id: 'btnArchCasual',   watch: 14, session: 24,  genres: ['Comedy', 'Animation'] },
-        binge:    { id: 'btnArchBinge',    watch: 42, session: 125, genres: ['Sci-Fi', 'Drama'] },
-        eclectic: { id: 'btnArchEclectic', watch: 48, session: 65,  genres: ['Drama', 'Action', 'Romance', 'Documentary'] }
+        action:   { id: 'btnArchAction',   viewerId: 'USR-0003', watch: 65, session: 95,  genres: ['Action', 'Thriller'] },
+        casual:   { id: 'btnArchCasual',   viewerId: 'USR-0006', watch: 14, session: 24,  genres: ['Comedy', 'Animation'] },
+        binge:    { id: 'btnArchBinge',    viewerId: 'USR-0002', watch: 42, session: 125, genres: ['Sci-Fi', 'Drama'] },
+        eclectic: { id: 'btnArchEclectic', viewerId: 'USR-0005', watch: 48, session: 65,  genres: ['Drama', 'Action', 'Romance', 'Documentary'] }
       };
       const preset = presets[key];
       if (!preset) return;
 
       document.getElementById(preset.id).classList.add('active');
+      document.getElementById('viewerId').value = preset.viewerId;
       document.getElementById('watchRange').value = preset.watch;
       document.getElementById('watchBadge').textContent = preset.watch.toFixed(1) + ' hrs';
       document.getElementById('sessionRange').value = preset.session;

@@ -109,7 +109,8 @@ docker compose up --build
 ```text
 Containerized Audience Segmentation & Personalization Service/
 ├── data/
-│   └── user_activity.csv            # 5,005 OTT viewer records
+│   ├── user_activity.csv            # 5,005 enriched OTT viewer telemetry records
+│   └── ott_catalog.csv              # 15 real OTT titles with IMDb ratings & platforms
 ├── trainer/
 │   ├── Dockerfile                   # Lean Python 3.11-slim container
 │   ├── requirements.txt             # Pinned dependencies
@@ -183,45 +184,45 @@ python evaluator/evaluate.py
 - **Sample Request:**
   ```json
   {
-    "user_id": "USR-8192",
-    "watch_time_hours": 55.0,
+    "user_id": "USR-0003",
+    "watch_time_hours": 85.0,
     "top_genres": ["Action", "Thriller"],
-    "avg_session_mins": 90.0
+    "avg_session_mins": 95.0
   }
   ```
 - **Sample Response (200 OK):**
   ```json
   {
-    "user_id": "USR-8192",
+    "user_id": "USR-0003",
     "segment_id": 1,
     "segment_name": "High-Engagement Action Viewers",
     "recommendations": [
-      "Velocity: Tokyo Driftline",
-      "Shadow Operative",
-      "The Grand Heist"
+      "The Dark Knight",
+      "Money Heist",
+      "Inception"
     ],
     "recommendation_details": [
       {
-        "title": "Velocity: Tokyo Driftline",
-        "score": 0.9298,
+        "title": "The Dark Knight",
+        "score": 0.9348,
         "matched_genres": ["Action", "Thriller"],
-        "reason": "Top vector similarity (93.0% match) for Action/Thriller & Feature Film format"
+        "reason": "Genre match (Action, Thriller); Cohort #1 behavioral fit"
       },
       {
-        "title": "Shadow Operative",
-        "score": 0.8988,
+        "title": "Money Heist",
+        "score": 0.9327,
         "matched_genres": ["Action", "Thriller"],
-        "reason": "Strong vector similarity (89.9% match) for Action/Thriller & Feature Film format"
+        "reason": "Genre match (Action, Thriller); Cohort #1 behavioral fit"
       },
       {
-        "title": "The Grand Heist",
-        "score": 0.7711,
+        "title": "Inception",
+        "score": 0.6447,
         "matched_genres": ["Action"],
-        "reason": "Strong vector similarity (77.1% match) for Action & Feature Film format"
+        "reason": "Genre match (Action); Format alignment (Movie, 148m); Cohort #1 behavioral fit"
       }
     ],
     "matched_genres": ["Action", "Thriller"],
-    "distance_to_centroid": 0.1899
+    "distance_to_centroid": 0.2697
   }
   ```
 
@@ -341,8 +342,8 @@ The independent evaluator runs automatically and records live metrics to `result
   "recommendation": {
     "method": "Content-Based Vector Space & Multi-Feature Cosine Similarity",
     "evaluation_available": true,
-    "catalog_coverage_pct": 93.3,
-    "unique_titles_recommended": 14,
+    "catalog_coverage_pct": 80.0,
+    "unique_titles_recommended": 12,
     "total_catalog_size": 15,
     "preference_alignment_rate": 1.0,
     "ranking_determinism": true,

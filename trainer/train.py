@@ -16,22 +16,52 @@ logging.basicConfig(
 logger = logging.getLogger('trainer')
 
 RECOMMENDATION_CATALOG = [
-    {'id': 'MOV-01', 'title': 'Cyberstrike: Protocol Zero', 'genres': ['Action', 'Sci-Fi'], 'type': 'Movie', 'duration_mins': 118, 'popularity': 95},
-    {'id': 'MOV-02', 'title': 'Velocity: Tokyo Driftline', 'genres': ['Action', 'Thriller'], 'type': 'Movie', 'duration_mins': 112, 'popularity': 92},
-    {'id': 'MOV-03', 'title': 'Shadow Operative', 'genres': ['Action', 'Thriller'], 'type': 'Movie', 'duration_mins': 125, 'popularity': 90},
-    {'id': 'MOV-04', 'title': 'The Quantum Paradox', 'genres': ['Sci-Fi', 'Thriller'], 'type': 'Movie', 'duration_mins': 135, 'popularity': 88},
-    {'id': 'SER-01', 'title': 'Silicon Alchemists', 'genres': ['Drama', 'Sci-Fi'], 'type': 'Series', 'duration_mins': 55, 'popularity': 96},
-    {'id': 'SER-02', 'title': 'Crown & Treason', 'genres': ['Drama', 'Thriller'], 'type': 'Series', 'duration_mins': 50, 'popularity': 94},
-    {'id': 'SER-03', 'title': 'Midnight In Amsterdam', 'genres': ['Drama', 'Romance'], 'type': 'Series', 'duration_mins': 48, 'popularity': 86},
-    {'id': 'SHT-01', 'title': 'Coffee Break Chronicles', 'genres': ['Comedy'], 'type': 'Short', 'duration_mins': 15, 'popularity': 89},
-    {'id': 'SHT-02', 'title': 'Office Pet Panic', 'genres': ['Comedy', 'Animation'], 'type': 'Short', 'duration_mins': 18, 'popularity': 87},
-    {'id': 'MOV-05', 'title': 'Love in Kyoto', 'genres': ['Romance', 'Comedy'], 'type': 'Movie', 'duration_mins': 98, 'popularity': 85},
-    {'id': 'DOC-01', 'title': 'Ocean Depths: Untold Mysteries', 'genres': ['Documentary'], 'type': 'Movie', 'duration_mins': 88, 'popularity': 91},
-    {'id': 'DOC-02', 'title': 'AI: The Next Frontier', 'genres': ['Documentary', 'Sci-Fi'], 'type': 'Movie', 'duration_mins': 76, 'popularity': 93},
-    {'id': 'MOV-06', 'title': 'Haunted Whisper', 'genres': ['Horror', 'Thriller'], 'type': 'Movie', 'duration_mins': 104, 'popularity': 84},
-    {'id': 'SHT-03', 'title': 'Pixel Pals', 'genres': ['Animation', 'Comedy'], 'type': 'Short', 'duration_mins': 12, 'popularity': 88},
-    {'id': 'MOV-07', 'title': 'The Grand Heist', 'genres': ['Action', 'Comedy'], 'type': 'Movie', 'duration_mins': 110, 'popularity': 97},
+    {'id': 'MOV-01', 'title': 'Inception', 'genres': ['Action', 'Sci-Fi'], 'type': 'Movie', 'duration_mins': 148, 'popularity': 98},
+    {'id': 'MOV-02', 'title': 'The Dark Knight', 'genres': ['Action', 'Thriller'], 'type': 'Movie', 'duration_mins': 152, 'popularity': 99},
+    {'id': 'MOV-03', 'title': 'Gladiator', 'genres': ['Action', 'Drama'], 'type': 'Movie', 'duration_mins': 155, 'popularity': 93},
+    {'id': 'MOV-04', 'title': 'Interstellar', 'genres': ['Sci-Fi', 'Drama'], 'type': 'Movie', 'duration_mins': 169, 'popularity': 97},
+    {'id': 'SER-01', 'title': 'Breaking Bad', 'genres': ['Drama', 'Thriller'], 'type': 'Series', 'duration_mins': 49, 'popularity': 99},
+    {'id': 'SER-02', 'title': 'The Crown', 'genres': ['Drama', 'Thriller'], 'type': 'Series', 'duration_mins': 55, 'popularity': 92},
+    {'id': 'SER-03', 'title': 'Stranger Things', 'genres': ['Sci-Fi', 'Drama', 'Horror'], 'type': 'Series', 'duration_mins': 52, 'popularity': 96},
+    {'id': 'SHT-01', 'title': 'The Office', 'genres': ['Comedy'], 'type': 'Short', 'duration_mins': 22, 'popularity': 95},
+    {'id': 'SHT-02', 'title': 'Rick and Morty', 'genres': ['Comedy', 'Animation'], 'type': 'Short', 'duration_mins': 23, 'popularity': 94},
+    {'id': 'MOV-05', 'title': 'La La Land', 'genres': ['Romance', 'Comedy'], 'type': 'Movie', 'duration_mins': 128, 'popularity': 91},
+    {'id': 'DOC-01', 'title': 'Our Planet', 'genres': ['Documentary'], 'type': 'Series', 'duration_mins': 50, 'popularity': 94},
+    {'id': 'DOC-02', 'title': 'The Social Dilemma', 'genres': ['Documentary', 'Sci-Fi'], 'type': 'Movie', 'duration_mins': 94, 'popularity': 90},
+    {'id': 'MOV-06', 'title': 'A Quiet Place', 'genres': ['Horror', 'Thriller'], 'type': 'Movie', 'duration_mins': 90, 'popularity': 89},
+    {'id': 'SHT-03', 'title': 'Arcane', 'genres': ['Animation', 'Action'], 'type': 'Short', 'duration_mins': 40, 'popularity': 97},
+    {'id': 'MOV-07', 'title': 'Money Heist', 'genres': ['Action', 'Thriller'], 'type': 'Series', 'duration_mins': 50, 'popularity': 96},
 ]
+
+def load_catalog():
+    candidate_paths = [
+        os.environ.get('CATALOG_PATH'),
+        'data/ott_catalog.csv',
+        '/app/data/ott_catalog.csv',
+        '../data/ott_catalog.csv',
+    ]
+    for p in candidate_paths:
+        if p and os.path.exists(p):
+            try:
+                cat_df = pd.read_csv(p)
+                catalog = []
+                for _, row in cat_df.iterrows():
+                    genres = [g.strip() for g in str(row['genres']).split(',')]
+                    catalog.append({
+                        'id': str(row['id']),
+                        'title': str(row['title']),
+                        'genres': genres,
+                        'type': str(row['type']),
+                        'duration_mins': int(row['duration_mins']),
+                        'popularity': int(row.get('popularity', 90)),
+                        'imdb_rating': float(row.get('imdb_rating', 8.5)),
+                        'platform': str(row.get('platform', 'OTT Platform'))
+                    })
+                logger.info(f"Loaded {len(catalog)} real titles from {p}")
+                return catalog
+            except Exception as e:
+                logger.warning(f"Failed loading {p}: {e}, using default catalog.")
+    return RECOMMENDATION_CATALOG
 
 ALL_GENRES = ['Action', 'Comedy', 'Drama', 'Sci-Fi', 'Thriller', 'Romance', 'Documentary', 'Animation', 'Horror']
 NUM_COLS = ['watch_time_hours', 'avg_session_mins', 'num_sessions', 'genre_diversity', 'weekend_watch_ratio', 'days_since_last_active']
@@ -285,7 +315,8 @@ def train_and_persist():
 
     # Build and persist content-based ML recommendation model vectors
     logger.info('Building content-based vector space representations for recommendation catalog...')
-    recommender_bundle = build_recommendation_matrices(RECOMMENDATION_CATALOG, ALL_GENRES)
+    catalog = load_catalog()
+    recommender_bundle = build_recommendation_matrices(catalog, ALL_GENRES)
 
     model_bundle = {
         'version': '1.0.0',
@@ -300,7 +331,7 @@ def train_and_persist():
         'defaults': defaults,
         'cluster_profiles': cluster_profiles,
         'segment_names': segment_names,
-        'recommendation_catalog': RECOMMENDATION_CATALOG,
+        'recommendation_catalog': catalog,
         'recommender_bundle': recommender_bundle,
         'evaluation_metrics': {
             'silhouette_score': round(final_silhouette, 4),

@@ -47,8 +47,8 @@
   "recommendation": {
     "method": "Content-Based Vector Space & Multi-Feature Cosine Similarity",
     "evaluation_available": true,
-    "catalog_coverage_pct": 93.3,
-    "unique_titles_recommended": 14,
+    "catalog_coverage_pct": 80.0,
+    "unique_titles_recommended": 12,
     "total_catalog_size": 15,
     "preference_alignment_rate": 1.0,
     "ranking_determinism": true,

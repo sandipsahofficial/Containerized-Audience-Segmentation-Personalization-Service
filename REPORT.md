@@ -37,6 +37,14 @@ The system operates on the OTT user activity dataset located at `data/user_activ
 | `genre_diversity` | Integer | Integer | Integer [1-9] | Number of unique genres viewed by the user. |
 | `weekend_watch_ratio` | Float | Float | Ratio [0.0 - 1.0] | Proportion of cumulative watch time logged on Saturdays and Sundays. |
 | `days_since_last_active` | Integer | Integer | Days [0 - 90] | Recency metric: days elapsed since the user's most recent active viewing session. |
+| `last_watched_title` | String | String | Title Name | Grounded real-world OTT title last viewed (e.g. *The Dark Knight*, *The Office*, *Breaking Bad*). |
+| `device_type` | String | String | Category | Hardware client: Smart TV, Mobile Phone, Laptop, Tablet, Streaming Box. |
+| `subscription_tier` | String | String | Tier | Plan tier: Premium 4K, Standard HD, Basic with Ads. |
+| `country` | String | String | ISO-2 | Viewer geographic market: US, GB, IN, CA, DE, AU, FR, BR. |
+| `completion_rate` | Float | Float | Ratio [0.0 - 1.0] | Video completion percentage of the most recently streamed title. |
+
+### Real-World Content Catalog (`data/ott_catalog.csv`)
+In addition to user activity telemetry, the service includes a grounded catalog of 15 globally recognized, award-winning titles across Movies, Series, and Shorts (*Inception*, *The Dark Knight*, *Gladiator*, *Interstellar*, *Breaking Bad*, *The Crown*, *Stranger Things*, *The Office*, *Rick and Morty*, *La La Land*, *Our Planet*, *The Social Dilemma*, *A Quiet Place*, *Arcane*, *Money Heist*) with accurate runtimes, IMDb ratings, platforms, and canonical multi-hot genre assignments.
 
 ### Raw Data Inspection Findings
 - **Total Raw Records:** 5,005 rows
@@ -273,7 +281,7 @@ The catalog vector matrices and weight configurations are serialized into `model
 
 ### Recommender Evaluation
 Evaluated via `ott-evaluator`:
-- **Catalog Coverage:** **93.3%** (14 out of 15 catalog items recommended across test archetypes).
+- **Catalog Coverage:** **80.0%** (12 out of 15 catalog items recommended across test archetypes).
 - **Preference Alignment Rate:** **1.0 (100%)** of recommendations share genres with the requested viewer preferences.
 - **Ranking Determinism:** **100% verified repeatable** across identical repeated requests.
 - **Precision / Recall @ K:** Documented as *"Not applicable because explicit user-item ground-truth interaction logs are not present in dataset."*
