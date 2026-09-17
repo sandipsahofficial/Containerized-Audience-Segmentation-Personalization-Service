@@ -1,0 +1,154 @@
+﻿{
+  "valid_profiles": [
+    {
+      "name": "High Action Viewer",
+      "payload": {
+        "user_id": "TEST-ACT-001",
+        "watch_time_hours": 58.0,
+        "avg_session_mins": 95.0,
+        "top_genres": ["Action", "Thriller"]
+      },
+      "expected_segment": "High-Engagement Action Viewers"
+    },
+    {
+      "name": "Casual Short Viewer",
+      "payload": {
+        "user_id": "TEST-CAS-002",
+        "watch_time_hours": 11.5,
+        "avg_session_mins": 24.0,
+        "top_genres": ["Comedy", "Romance"]
+      },
+      "expected_segment": "Casual Short-Session Viewers"
+    },
+    {
+      "name": "Weekend Binge Enthusiast",
+      "payload": {
+        "user_id": "TEST-BNG-003",
+        "watch_time_hours": 42.0,
+        "avg_session_mins": 125.0,
+        "top_genres": ["Drama", "Sci-Fi"],
+        "weekend_watch_ratio": 0.85
+      },
+      "expected_segment": "Weekend Binge Enthusiasts"
+    },
+    {
+      "name": "Eclectic Genre Explorer",
+      "payload": {
+        "user_id": "TEST-EXP-004",
+        "watch_time_hours": 50.0,
+        "avg_session_mins": 65.0,
+        "top_genres": ["Action", "Comedy", "Drama", "Sci-Fi", "Documentary"]
+      },
+      "expected_segment": "Eclectic Multi-Genre Explorers"
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "unknown_genre",
+      "description": "Request with an unknown/unseen genre string",
+      "payload": {
+        "user_id": "EDGE-01",
+        "watch_time_hours": 25.0,
+        "avg_session_mins": 45.0,
+        "top_genres": ["NonExistentGenre123"]
+      },
+      "expected_status": 200,
+      "expect_success": true
+    },
+    {
+      "id": "empty_genres",
+      "description": "Request with empty genre list",
+      "payload": {
+        "user_id": "EDGE-02",
+        "watch_time_hours": 20.0,
+        "avg_session_mins": 40.0,
+        "top_genres": []
+      },
+      "expected_status": 200,
+      "expect_success": true
+    },
+    {
+      "id": "zero_watch_time",
+      "description": "User with boundary 0.0 watch time hours",
+      "payload": {
+        "user_id": "EDGE-03",
+        "watch_time_hours": 0.0,
+        "avg_session_mins": 30.0,
+        "top_genres": ["Comedy"]
+      },
+      "expected_status": 200,
+      "expect_success": true
+    },
+    {
+      "id": "very_large_watch_time",
+      "description": "Watch time exceeding realistic bounds (>1000h)",
+      "payload": {
+        "user_id": "EDGE-04",
+        "watch_time_hours": 5000.0,
+        "avg_session_mins": 60.0,
+        "top_genres": ["Action"]
+      },
+      "expected_status": 400,
+      "expect_success": false
+    },
+    {
+      "id": "very_large_session_duration",
+      "description": "Session duration exceeding realistic bounds (>600m)",
+      "payload": {
+        "user_id": "EDGE-05",
+        "watch_time_hours": 20.0,
+        "avg_session_mins": 1200.0,
+        "top_genres": ["Drama"]
+      },
+      "expected_status": 400,
+      "expect_success": false
+    },
+    {
+      "id": "missing_required_field",
+      "description": "Payload missing mandatory user_id field",
+      "payload": {
+        "watch_time_hours": 20.0,
+        "avg_session_mins": 40.0,
+        "top_genres": ["Drama"]
+      },
+      "expected_status": 400,
+      "expect_success": false
+    },
+    {
+      "id": "string_instead_of_numeric",
+      "description": "String value supplied for numeric watch_time_hours",
+      "payload": {
+        "user_id": "EDGE-07",
+        "watch_time_hours": "forty-two",
+        "avg_session_mins": 45.0,
+        "top_genres": ["Comedy"]
+      },
+      "expected_status": 400,
+      "expect_success": false
+    },
+    {
+      "id": "negative_numeric_value",
+      "description": "Negative watch_time_hours provided",
+      "payload": {
+        "user_id": "EDGE-08",
+        "watch_time_hours": -15.0,
+        "avg_session_mins": 45.0,
+        "top_genres": ["Action"]
+      },
+      "expected_status": 400,
+      "expect_success": false
+    },
+    {
+      "id": "repeated_request",
+      "description": "Repeated identical recommendation request (idempotency check)",
+      "payload": {
+        "user_id": "EDGE-09-REPEAT",
+        "watch_time_hours": 30.0,
+        "avg_session_mins": 50.0,
+        "top_genres": ["Thriller"]
+      },
+      "expected_status": 200,
+      "expect_success": true
+    }
+  ]
+}

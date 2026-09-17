@@ -1,0 +1,13 @@
+{
+  "silhouette_score": 0.4206,
+  "inertia": 10330.4,
+  "davies_bouldin": 1.0334,
+  "calinski_harabasz": 3215.35,
+  "cluster_sizes": {
+    "2": 1502,
+    "1": 1283,
+    "4": 1013,
+    "0": 689,
+    "3": 505
+  }
+}

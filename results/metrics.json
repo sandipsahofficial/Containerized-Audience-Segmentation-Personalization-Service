@@ -1,0 +1,45 @@
+{
+  "model": {
+    "algorithm": "KMeans",
+    "n_clusters": 5,
+    "random_state": 42
+  },
+  "clustering": {
+    "silhouette_score": 0.4206,
+    "inertia": 10330.4,
+    "davies_bouldin": 1.0334,
+    "calinski_harabasz": 3215.35,
+    "cluster_sizes": {
+      "2": 1502,
+      "1": 1283,
+      "4": 1013,
+      "0": 689,
+      "3": 505
+    }
+  },
+  "api": {
+    "health_check": true,
+    "valid_requests_passed": 4,
+    "total_valid_requests": 4,
+    "invalid_requests_handled": 6,
+    "total_invalid_requests": 6
+  },
+  "edge_cases": {
+    "unknown_genre": true,
+    "empty_genres": true,
+    "zero_watch_time": true,
+    "very_large_watch_time": true,
+    "very_large_session_duration": true,
+    "missing_required_field": true,
+    "string_instead_of_numeric": true,
+    "negative_numeric_value": true,
+    "repeated_request_deterministic": true,
+    "malformed_json": true,
+    "model_not_ready_handled_503": true
+  },
+  "reproducibility": {
+    "fixed_seed": true,
+    "seed_value": 42,
+    "artifact_exists": true
+  }
+}

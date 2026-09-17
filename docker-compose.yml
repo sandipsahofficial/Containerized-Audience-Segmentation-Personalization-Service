@@ -1,0 +1,58 @@
+﻿services:
+  trainer:
+    build:
+      context: ./trainer
+      dockerfile: Dockerfile
+    container_name: ott-trainer
+    environment:
+      - DATASET_PATH=/app/data/user_activity.csv
+      - MODELS_DIR=/app/models
+    volumes:
+      - ./data:/app/data:ro
+      - model_volume:/app/models
+    restart: "no"
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: ott-api
+    environment:
+      - MODELS_DIR=/app/models
+      - PORT=5000
+      - HOST=0.0.0.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - model_volume:/app/models:ro
+    depends_on:
+      trainer:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health').getcode() == 200 else 1)\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: on-failure
+
+  evaluator:
+    build:
+      context: ./evaluator
+      dockerfile: Dockerfile
+    container_name: ott-evaluator
+    environment:
+      - API_URL=http://api:5000
+      - MODELS_DIR=/app/models
+      - RESULTS_DIR=/app/results
+    volumes:
+      - model_volume:/app/models:ro
+      - ./results:/app/results
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  model_volume:
+    name: ott_segmentation_model_volume
