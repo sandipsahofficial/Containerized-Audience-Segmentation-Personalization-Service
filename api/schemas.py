@@ -1,4 +1,4 @@
-﻿from typing import Dict, Any, Tuple, Optional, List
+from typing import Dict, Any, Tuple, Optional, List
 
 def validate_recommend_payload(data: Any) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
     """
@@ -38,8 +38,8 @@ def validate_recommend_payload(data: Any) -> Tuple[bool, Optional[str], Optional
     if avg_session > 600:
         return False, "Field 'avg_session_mins' exceeds maximum allowable threshold (600 minutes).", None
 
-    # 4. Validate top_genres
-    genres_raw = data.get('top_genres', [])
+    # 4. Validate top_genres (accepts preferred_genres as alias)
+    genres_raw = data.get('top_genres') if 'top_genres' in data else data.get('preferred_genres', [])
     top_genres_clean: List[str] = []
 
     if isinstance(genres_raw, list):

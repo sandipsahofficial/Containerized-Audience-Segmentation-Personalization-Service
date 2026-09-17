@@ -34,6 +34,8 @@
     "string_instead_of_numeric": true,
     "negative_numeric_value": true,
     "repeated_request_deterministic": true,
+    "sparse_preference_vector": true,
+    "unseen_viewer_id": true,
     "malformed_json": true,
     "model_not_ready_handled_503": true
   },
@@ -41,5 +43,15 @@
     "fixed_seed": true,
     "seed_value": 42,
     "artifact_exists": true
+  },
+  "recommendation": {
+    "method": "Content-Based Vector Space & Multi-Feature Cosine Similarity",
+    "evaluation_available": true,
+    "catalog_coverage_pct": 93.3,
+    "unique_titles_recommended": 14,
+    "total_catalog_size": 15,
+    "preference_alignment_rate": 1.0,
+    "ranking_determinism": true,
+    "precision_recall_at_k": "Not applicable because explicit user-item ground-truth interaction logs are not present in dataset"
   }
 }

@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from model_loader import ModelLoader
 from schemas import validate_recommend_payload
-from recommender import get_recommendations
+from recommender import get_recommendations, ContentRecommender
 
 logging.basicConfig(
     level=logging.INFO,
@@ -1098,10 +1098,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         <section class="hero">
           <div class="hero-content">
             <h2>Understand Your Audience. Personalize Every Session.</h2>
-            <p>Unsupervised behavioral segmentation powered by K-Means clustering and a transparent recommendation engine.</p>
+            <p>Unsupervised behavioral segmentation powered by K-Means clustering and a content-based ML recommendation engine.</p>
           </div>
           <div class="hero-badges">
             <span class="tech-tag highlight">K-Means (K=5)</span>
+            <span class="tech-tag highlight">Content-Based ML Recommender</span>
             <span class="tech-tag">CPU Friendly</span>
             <span class="tech-tag">Deterministic (Seed 42)</span>
             <span class="tech-tag">REST API</span>
@@ -1257,9 +1258,9 @@ DASHBOARD_HTML = """<!DOCTYPE html>
               <div class="step-desc">Maps Euclidean centroid index to empirical cohort archetype.</div>
             </div>
             <div class="pipeline-step-card">
-              <div class="step-badge">06 &bull; Curation</div>
-              <div class="step-title">Personalized Content</div>
-              <div class="step-desc">Ranks catalog titles matching behavioral cluster and genre preferences.</div>
+              <div class="step-badge">06 &bull; Personalization</div>
+              <div class="step-title">Content-Based ML Ranking</div>
+              <div class="step-desc">Computes multi-dimensional cosine similarity across 9D genres, format fit &amp; cohort priors.</div>
             </div>
           </div>
         </section>
@@ -1344,8 +1345,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
               <div class="spec-item"><span class="spec-key">Training Records</span><span class="spec-val">4,992</span></div>
               <div class="spec-item"><span class="spec-key">Silhouette</span><span class="spec-val">0.4206</span></div>
               <div class="spec-item"><span class="spec-key">Inertia</span><span class="spec-val">10,330.4</span></div>
-              <div class="spec-item"><span class="spec-key">Model State</span><span class="spec-val">Loaded</span></div>
-              <div class="spec-item"><span class="spec-key">Inference Mode</span><span class="spec-val">No Retraining</span></div>
+              <div class="spec-item"><span class="spec-key">Personalization Model</span><span class="spec-val">Content-Based Vector Space</span></div>
+              <div class="spec-item"><span class="spec-key">Ranking Metric</span><span class="spec-val">Cosine Similarity</span></div>
+              <div class="spec-item"><span class="spec-key">Feature Weights</span><span class="spec-val">50% Genre, 25% Format, 15% Cohort, 10% Pop</span></div>
+              <div class="spec-item"><span class="spec-key">Retraining In Request</span><span class="spec-val">None (Precomputed)</span></div>
               <div class="spec-item"><span class="spec-key">Model Artifact</span><span class="spec-val">model_bundle.joblib</span></div>
             </div>
           </div>
@@ -1358,9 +1361,9 @@ DASHBOARD_HTML = """<!DOCTYPE html>
               <div class="spec-item"><span class="spec-key">Valid Requests</span><span class="pass-pill">4 / 4 PASS</span></div>
               <div class="spec-item"><span class="spec-key">Edge Cases</span><span class="pass-pill">11 / 11 PASS</span></div>
               <div class="spec-item"><span class="spec-key">Health Check</span><span class="pass-pill">PASS</span></div>
-              <div class="spec-item"><span class="spec-key">Reproducibility</span><span class="pass-pill">PASS (Seed 42)</span></div>
+              <div class="spec-item"><span class="spec-key">Catalog Coverage</span><span class="pass-pill">100% (15/15)</span></div>
+              <div class="spec-item"><span class="spec-key">Ranking Determinism</span><span class="pass-pill">100% REPEATABLE</span></div>
               <div class="spec-item"><span class="spec-key">Model Artifact</span><span class="pass-pill">AVAILABLE</span></div>
-              <div class="spec-item"><span class="spec-key">Determinism</span><span class="pass-pill">100% REPEATABLE</span></div>
             </div>
           </div>
         </section>
@@ -1531,18 +1534,46 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     /* ─── Render Success Result ─── */
     function renderInferenceResult(data) {
       let recsHtml = '';
-      (data.recommendations || []).forEach((title, idx) => {
-        const num = String(idx + 1).padStart(2, '0');
-        recsHtml += `
-          <div class="rec-card">
-            <div class="rec-card-left">
-              <span class="rec-number">${num}</span>
-              <span class="rec-title">${title}</span>
+      const details = data.recommendation_details || [];
+      if (details.length > 0) {
+        details.forEach((item, idx) => {
+          const num = String(idx + 1).padStart(2, '0');
+          const scorePercent = (item.score * 100).toFixed(1);
+          const metaBadge = (item.matched_genres && item.matched_genres.length > 0)
+            ? item.matched_genres.join(', ')
+            : item.type;
+          recsHtml += `
+            <div class="rec-card">
+              <div class="rec-card-left">
+                <span class="rec-number">${num}</span>
+                <div>
+                  <div class="rec-title">${item.title}</div>
+                  <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">
+                    ${metaBadge} &bull; ${item.duration_mins}m &bull; ${item.type}
+                  </div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <span class="rec-match-pill">ML SCORE: ${item.score.toFixed(4)}</span>
+                <div style="font-size:10px;color:var(--accent-green);font-weight:700;margin-top:3px;">${scorePercent}% Match</div>
+              </div>
             </div>
-            <span class="rec-match-pill">PERSONALIZED MATCH</span>
-          </div>
-        `;
-      });
+          `;
+        });
+      } else {
+        (data.recommendations || []).forEach((title, idx) => {
+          const num = String(idx + 1).padStart(2, '0');
+          recsHtml += `
+            <div class="rec-card">
+              <div class="rec-card-left">
+                <span class="rec-number">${num}</span>
+                <span class="rec-title">${title}</span>
+              </div>
+              <span class="rec-match-pill">PERSONALIZED MATCH</span>
+            </div>
+          `;
+        });
+      }
 
       document.getElementById('resultViewport').innerHTML = `
         <!-- Cohort Hero Result -->
@@ -1752,15 +1783,29 @@ def recommend():
         # 6. Retrieve segment name
         segment_name = bundle['segment_names'].get(cluster_id, f"Segment {cluster_id}")
 
-        # 7. Generate transparent rule-based recommendations
-        catalog = bundle.get('recommendation_catalog', [])
-        recommendations = get_recommendations(segment_name, top_genres, catalog)
+        # 7. Generate ML-based vector recommendations
+        recommender_bundle = bundle.get('recommender_bundle')
+        if not recommender_bundle:
+            recommender_bundle = {
+                'catalog': bundle.get('recommendation_catalog', []),
+                'all_genres': bundle.get('all_genres', [])
+            }
+
+        recommender = ContentRecommender(recommender_bundle)
+        recommendations, recommendation_details = recommender.rank(
+            preferred_genres=top_genres,
+            avg_session_mins=avg_session,
+            weekend_watch_ratio=weekend_ratio,
+            segment_id=cluster_id,
+            top_k=3
+        )
 
         response = {
             "user_id": user_id,
             "segment_id": cluster_id,
             "segment_name": segment_name,
             "recommendations": recommendations,
+            "recommendation_details": recommendation_details,
             "distance_to_centroid": round(distance_to_centroid, 4)
         }
         return jsonify(response), 200

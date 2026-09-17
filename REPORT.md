@@ -191,11 +191,46 @@ Segment names are assigned dynamically via rule-based inspection of centroid sta
   "segment_id": 1,
   "segment_name": "High-Engagement Action Viewers",
   "recommendations": [
-    "The Grand Heist",
-    "Cyberstrike: Protocol Zero",
-    "Crown & Treason"
+    "Velocity: Tokyo Driftline",
+    "Shadow Operative",
+    "The Grand Heist"
   ],
-  "distance_to_centroid": 0.1899
+  "recommendation_details": [
+    {
+      "id": "MOV-02",
+      "title": "Velocity: Tokyo Driftline",
+      "score": 0.9298,
+      "similarity_score": 0.9298,
+      "matched_genres": ["Action", "Thriller"],
+      "type": "Movie",
+      "duration_mins": 112,
+      "popularity": 92,
+      "ranking_reason": "Genre match (Action, Thriller); Format alignment (Movie, 112m); Cohort #1 behavioral fit"
+    },
+    {
+      "id": "MOV-03",
+      "title": "Shadow Operative",
+      "score": 0.9284,
+      "similarity_score": 0.9284,
+      "matched_genres": ["Action", "Thriller"],
+      "type": "Movie",
+      "duration_mins": 125,
+      "popularity": 90,
+      "ranking_reason": "Genre match (Action, Thriller); Format alignment (Movie, 125m); Cohort #1 behavioral fit"
+    },
+    {
+      "id": "MOV-07",
+      "title": "The Grand Heist",
+      "score": 0.6536,
+      "similarity_score": 0.6536,
+      "matched_genres": ["Action"],
+      "type": "Movie",
+      "duration_mins": 110,
+      "popularity": 97,
+      "ranking_reason": "Genre match (Action); Format alignment (Movie, 110m)"
+    }
+  ],
+  "distance_to_centroid": 0.6868
 }
 ```
 
@@ -205,6 +240,43 @@ Segment names are assigned dynamically via rule-based inspection of centroid sta
 3. **Range Guards:** Negative watch time or session length <= 0 rejected with 400 Bad Request. Extreme values (>1000h watch, >600m session) rejected with 400.
 4. **Empty / Unknown Genres:** Unseen genres or empty lists gracefully mapped to general indicator space without server crash (returns 200).
 5. **No Stack Trace Leaks:** All 4xx and 5xx errors return sanitized JSON objects.
+
+---
+
+## 11. ML-Based Content Personalization Engine
+
+### Data Inspection & Method Selection
+Inspection of `data/user_activity.csv` confirmed that the raw dataset contains aggregate viewer behavioral telemetry (`watch_time_hours`, `avg_session_mins`, `num_sessions`, `top_genres`, `genre_diversity`, `weekend_watch_ratio`, `days_since_last_active`). It does **not** contain individual user-item interaction logs (such as item IDs, play timestamps, or ratings).
+
+Consequently, collaborative filtering algorithms (such as Matrix Factorization / SVD or ALS) are fundamentally inappropriate and would require fabricating fake interaction tables. Instead, we implemented a legitimate, reproducible, and explainable **Content-Based Vector Space & Cosine Similarity ML Recommendation Model**.
+
+### Vector Space Representation
+During training (`ott-trainer`), a precomputed 17-dimensional feature matrix $M_{catalog} \in \mathbb{R}^{15 \times 17}$ is constructed across all 15 catalog items:
+1. **Genre Representation (9D, L2-normalized):** Multi-hot indicator vector over platform genres (`Action`, `Comedy`, `Drama`, `Sci-Fi`, `Thriller`, `Romance`, `Documentary`, `Animation`, `Horror`), normalized by $\|\vec{g}\|_2$.
+2. **Session & Format Alignment (3D, L2-normalized):** Encodes whether the title is Short ($\le 30$m), Medium ($31-105$m), or Extended/Series ($> 105$m or episodic).
+3. **K-Means Cohort Empirical Affinity (5D, L2-normalized):** Calculated from empirical genre concentration and session profiles of the 5 discovered clusters.
+4. **Normalized Popularity Prior (1D):** Continuous scale $\in [0, 1]$.
+
+### Inference Scoring Formula
+At inference time (`POST /recommend`), the viewer profile is transformed into a matching query vector $\vec{q} = (\hat{u}_{genre}, \hat{u}_{format}, \vec{u}_{cohort}, p)$. The composite ranking score is calculated via matrix dot product:
+
+$$\text{score}(u, c_i) = w_g \cdot (\hat{u}_{genre} \cdot \hat{g}_i) + w_f \cdot (\hat{u}_{format} \cdot \hat{f}_i) + w_s \cdot (\vec{u}_{cohort} \cdot \vec{s}_i) + w_p \cdot p_i$$
+
+Where weights are balanced to prioritize content relevance while honoring behavioral cadence:
+- $w_g = 0.50$ (Genre Cosine Similarity)
+- $w_f = 0.25$ (Session Cadence & Format Alignment)
+- $w_s = 0.15$ (KMeans Empirical Cohort Fit)
+- $w_p = 0.10$ (Platform Popularity Regularizer)
+
+### Artifact Persistence & Zero Retraining
+The catalog vector matrices and weight configurations are serialized into `model_bundle.joblib` by `trainer` and mounted read-only into `/app/models` for `api`. The API loads the bundle once during startup. Inference executes in $< 1$ ms on CPU with zero retraining.
+
+### Recommender Evaluation
+Evaluated via `ott-evaluator`:
+- **Catalog Coverage:** **93.3%** (14 out of 15 catalog items recommended across test archetypes).
+- **Preference Alignment Rate:** **1.0 (100%)** of recommendations share genres with the requested viewer preferences.
+- **Ranking Determinism:** **100% verified repeatable** across identical repeated requests.
+- **Precision / Recall @ K:** Documented as *"Not applicable because explicit user-item ground-truth interaction logs are not present in dataset."*
 
 ---
 

@@ -1,4 +1,4 @@
-﻿{
+{
   "valid_profiles": [
     {
       "name": "High Action Viewer",
@@ -146,6 +146,30 @@
         "watch_time_hours": 30.0,
         "avg_session_mins": 50.0,
         "top_genres": ["Thriller"]
+      },
+      "expected_status": 200,
+      "expect_success": true
+    },
+    {
+      "id": "sparse_preference_vector",
+      "description": "User with single genre preference testing sparse vector ranking",
+      "payload": {
+        "user_id": "EDGE-10-SPARSE",
+        "watch_time_hours": 15.0,
+        "avg_session_mins": 45.0,
+        "top_genres": ["Horror"]
+      },
+      "expected_status": 200,
+      "expect_success": true
+    },
+    {
+      "id": "unseen_viewer_id",
+      "description": "Cold start unknown viewer ID never seen in training set",
+      "payload": {
+        "user_id": "EDGE-11-COLD-START-9999",
+        "watch_time_hours": 35.0,
+        "avg_session_mins": 60.0,
+        "top_genres": ["Action", "Sci-Fi"]
       },
       "expected_status": 200,
       "expect_success": true

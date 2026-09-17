@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import json
 import logging
@@ -191,6 +191,73 @@ def generate_segment_names(df_clean: pd.DataFrame, cluster_labels: np.ndarray, k
 
     return segment_names, profiles
 
+def build_recommendation_matrices(catalog, all_genres):
+    """
+    Precomputes normalized vector representations for content-based ML recommendation:
+    1. Genre Multi-Hot Matrix (L2 normalized)
+    2. Format / Session Duration Matrix (L2 normalized)
+    3. Cohort Empirical Affinity Matrix (L2 normalized)
+    4. Popularity Prior Vector
+    """
+    n_items = len(catalog)
+    genre_matrix = np.zeros((n_items, len(all_genres)), dtype=np.float64)
+    format_matrix = np.zeros((n_items, 3), dtype=np.float64)
+    affinity_matrix = np.zeros((n_items, 5), dtype=np.float64)
+    pop_vector = np.zeros(n_items, dtype=np.float64)
+
+    for i, item in enumerate(catalog):
+        # 1. Multi-hot genre vector
+        for g in item.get('genres', []):
+            if g in all_genres:
+                genre_matrix[i, all_genres.index(g)] = 1.0
+        g_norm = np.linalg.norm(genre_matrix[i])
+        if g_norm > 0:
+            genre_matrix[i] /= g_norm
+
+        # 2. Format / duration vector
+        dur = item.get('duration_mins', 60)
+        is_series = (item.get('type') == 'Series')
+        if is_series or dur > 105:
+            format_matrix[i] = [0.0, 0.2, 1.0]
+        elif dur <= 30:
+            format_matrix[i] = [1.0, 0.2, 0.0]
+        else:
+            format_matrix[i] = [0.2, 1.0, 0.3]
+        f_norm = np.linalg.norm(format_matrix[i])
+        if f_norm > 0:
+            format_matrix[i] /= f_norm
+
+        # 3. Empirical cohort affinity
+        item_genres = set(item.get('genres', []))
+        affinity_matrix[i, 0] = len(item_genres.intersection({'Drama', 'Romance', 'Documentary', 'Sci-Fi'})) / max(1, len(item_genres))
+        affinity_matrix[i, 1] = len(item_genres.intersection({'Action', 'Thriller'})) / max(1, len(item_genres))
+        affinity_matrix[i, 2] = (len(item_genres.intersection({'Comedy', 'Animation'})) + (1.0 if dur <= 30 else 0.0)) / 2.0
+        affinity_matrix[i, 3] = item.get('popularity', 50) / 100.0
+        affinity_matrix[i, 4] = ((1.0 if is_series or dur >= 110 else 0.0) + len(item_genres.intersection({'Drama', 'Sci-Fi', 'Thriller'}))) / 2.0
+
+        aff_norm = np.linalg.norm(affinity_matrix[i])
+        if aff_norm > 0:
+            affinity_matrix[i] /= aff_norm
+
+        # 4. Normalized popularity prior
+        pop_vector[i] = item.get('popularity', 50) / 100.0
+
+    return {
+        'genre_matrix': genre_matrix,
+        'format_matrix': format_matrix,
+        'affinity_matrix': affinity_matrix,
+        'pop_vector': pop_vector,
+        'catalog': catalog,
+        'all_genres': all_genres,
+        'weights': {
+            'genre': 0.50,
+            'format': 0.25,
+            'segment': 0.15,
+            'popularity': 0.10
+        },
+        'method': 'Content-Based Vector Space & Multi-Feature Cosine Similarity'
+    }
+
 def train_and_persist():
     logger.info('Starting Audience Segmentation training pipeline...')
     data_path = find_dataset_path()
@@ -216,6 +283,10 @@ def train_and_persist():
 
     segment_names, cluster_profiles = generate_segment_names(clean_df, final_labels, best_k)
 
+    # Build and persist content-based ML recommendation model vectors
+    logger.info('Building content-based vector space representations for recommendation catalog...')
+    recommender_bundle = build_recommendation_matrices(RECOMMENDATION_CATALOG, ALL_GENRES)
+
     model_bundle = {
         'version': '1.0.0',
         'algorithm': 'KMeans',
@@ -230,6 +301,7 @@ def train_and_persist():
         'cluster_profiles': cluster_profiles,
         'segment_names': segment_names,
         'recommendation_catalog': RECOMMENDATION_CATALOG,
+        'recommender_bundle': recommender_bundle,
         'evaluation_metrics': {
             'silhouette_score': round(final_silhouette, 4),
             'inertia': round(final_inertia, 2),
